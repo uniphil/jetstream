@@ -69,6 +69,12 @@ func main() {
 			Value:   "./data",
 			EnvVars: []string{"JETSTREAM_DATA_DIR"},
 		},
+		&cli.StringFlag{
+			Name:     "zstd-dictionary-path",
+			Usage:    "path to the zstd dictionary file",
+			EnvVars:  []string{"JETSTREAM_ZSTD_DICTIONARY_PATH"},
+			Required: false,
+		},
 		&cli.DurationFlag{
 			Name:    "event-ttl",
 			Usage:   "time to live for events",
@@ -342,7 +348,7 @@ func Jetstream(cctx *cli.Context) error {
 
 	c.Shutdown()
 
-	err = c.DB.Close()
+	err = c.UncompressedDB.Close()
 	if err != nil {
 		log.Error("failed to close pebble db", "error", err)
 	}

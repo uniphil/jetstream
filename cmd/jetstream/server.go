@@ -14,7 +14,6 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/bluesky-social/jetstream/pkg/consumer"
 	"github.com/bluesky-social/jetstream/pkg/models"
-	"github.com/goccy/go-json"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/prometheus/client_golang/prometheus"
@@ -39,6 +38,7 @@ type Subscriber struct {
 	id               int64
 	cLk              sync.Mutex
 	cursor           *int64
+	compress         bool
 	deliveredCounter prometheus.Counter
 	bytesCounter     prometheus.Counter
 	// wantedCollections is nil if the subscriber wants all collections
@@ -68,7 +68,7 @@ func NewServer(maxSubRate float64) (*Server, error) {
 var maxConcurrentEmits = int64(100)
 var cutoverThresholdUS = int64(1_000_000)
 
-func (s *Server) Emit(ctx context.Context, e models.Event) error {
+func (s *Server) Emit(ctx context.Context, e *models.Event, asJSON, compBytes []byte) error {
 	ctx, span := tracer.Start(ctx, "Emit")
 	defer span.End()
 
@@ -78,14 +78,7 @@ func (s *Server) Emit(ctx context.Context, e models.Event) error {
 	defer s.lk.RUnlock()
 
 	eventsEmitted.Inc()
-
-	b, err := json.Marshal(e)
-	if err != nil {
-		log.Error("failed to marshal event", "error", err)
-		return fmt.Errorf("failed to marshal event: %w", err)
-	}
-
-	evtSize := float64(len(b))
+	evtSize := float64(len(asJSON))
 	bytesEmitted.Add(evtSize)
 
 	collection := ""
@@ -93,7 +86,8 @@ func (s *Server) Emit(ctx context.Context, e models.Event) error {
 		collection = e.Commit.Collection
 	}
 
-	getEncodedEvent := func() []byte { return b }
+	getJSONEvent := func() []byte { return asJSON }
+	getCompressedEvent := func() []byte { return compBytes }
 
 	sem := semaphore.NewWeighted(maxConcurrentEmits)
 	for _, sub := range s.Subscribers {
@@ -110,7 +104,14 @@ func (s *Server) Emit(ctx context.Context, e models.Event) error {
 			if sub.cursor != nil && sub.seq < e.TimeUS-cutoverThresholdUS {
 				return
 			}
-			emitToSubscriber(ctx, log, sub, e.TimeUS, e.Did, collection, false, getEncodedEvent)
+
+			// Pick the event valuer for the subscriber
+			getEventBytes := getJSONEvent
+			if sub.compress {
+				getEventBytes = getCompressedEvent
+			}
+
+			emitToSubscriber(ctx, log, sub, e.TimeUS, e.Did, collection, false, getEventBytes)
 		}(sub)
 	}
 
@@ -124,7 +125,7 @@ func (s *Server) Emit(ctx context.Context, e models.Event) error {
 	return nil
 }
 
-func emitToSubscriber(ctx context.Context, log *slog.Logger, sub *Subscriber, timeUS int64, did, collection string, playback bool, getEncodedEvent func() []byte) error {
+func emitToSubscriber(ctx context.Context, log *slog.Logger, sub *Subscriber, timeUS int64, did, collection string, playback bool, getEventBytes func() []byte) error {
 	if !sub.WantsCollection(collection) {
 		return nil
 	}
@@ -140,7 +141,7 @@ func emitToSubscriber(ctx context.Context, log *slog.Logger, sub *Subscriber, ti
 		return nil
 	}
 
-	evtBytes := getEncodedEvent()
+	evtBytes := getEventBytes()
 	if playback {
 		// Copy the event bytes so the playback iterator can reuse the buffer
 		evtBytes = append([]byte{}, evtBytes...)
@@ -191,7 +192,7 @@ func (s *Server) GetSeq() int64 {
 	return s.seq
 }
 
-func (s *Server) AddSubscriber(ws *websocket.Conn, realIP string, wantedCollectionPrefixes []string, wantedCollections []string, wantedDids []string, cursor *int64) *Subscriber {
+func (s *Server) AddSubscriber(ws *websocket.Conn, realIP string, compress bool, wantedCollectionPrefixes []string, wantedCollections []string, wantedDids []string, cursor *int64) (*Subscriber, error) {
 	s.lk.Lock()
 	defer s.lk.Unlock()
 
@@ -227,6 +228,7 @@ func (s *Server) AddSubscriber(ws *websocket.Conn, realIP string, wantedCollecti
 		wantedCollections: wantedCol,
 		wantedDids:        didMap,
 		cursor:            cursor,
+		compress:          compress,
 		deliveredCounter:  eventsDelivered.WithLabelValues(realIP),
 		bytesCounter:      bytesDelivered.WithLabelValues(realIP),
 		rl:                rate.NewLimiter(rate.Limit(s.maxSubRate), int(s.maxSubRate)),
@@ -242,9 +244,11 @@ func (s *Server) AddSubscriber(ws *websocket.Conn, realIP string, wantedCollecti
 		"id", sub.id,
 		"wantedCollections", wantedCol,
 		"wantedDids", wantedDids,
+		"cursor", cursor,
+		"compress", compress,
 	)
 
-	return &sub
+	return &sub, nil
 }
 
 func (s *Server) RemoveSubscriber(num int64) {
@@ -306,6 +310,10 @@ func (s *Server) HandleSubscribe(c echo.Context) error {
 		return fmt.Errorf("too many wanted DIDs")
 	}
 
+	// Check if the user wants zstd compression
+	acceptEncoding := c.Request().Header.Get("Accept-Encoding")
+	compress := strings.Contains(acceptEncoding, "zstd")
+
 	var cursor *int64
 	var err error
 	qCursor := c.Request().URL.Query().Get("cursor")
@@ -342,16 +350,21 @@ func (s *Server) HandleSubscribe(c echo.Context) error {
 		}
 	}()
 
-	sub := s.AddSubscriber(ws, c.RealIP(), wantedCollectionPrefixes, wantedCollections, wantedDids, cursor)
+	sub, err := s.AddSubscriber(ws, c.RealIP(), compress, wantedCollectionPrefixes, wantedCollections, wantedDids, cursor)
+	if err != nil {
+		log.Error("failed to add subscriber", "error", err)
+		return err
+	}
 	defer s.RemoveSubscriber(sub.id)
 
 	if cursor != nil {
 		log.Info("replaying events", "cursor", *cursor)
 		playbackRateLimit := s.maxSubRate * 10
+
 		go func() {
 			for {
-				lastSeq, err := s.Consumer.ReplayEvents(ctx, *cursor, playbackRateLimit, func(ctx context.Context, timeUS int64, did, collection string, getEncodedEvent func() []byte) error {
-					return emitToSubscriber(ctx, log, sub, timeUS, did, collection, true, getEncodedEvent)
+				lastSeq, err := s.Consumer.ReplayEvents(ctx, sub.compress, *cursor, playbackRateLimit, func(ctx context.Context, timeUS int64, did, collection string, getEventBytes func() []byte) error {
+					return emitToSubscriber(ctx, log, sub, timeUS, did, collection, true, getEventBytes)
 				})
 				if err != nil {
 					log.Error("failed to replay events", "error", err)
@@ -390,6 +403,16 @@ func (s *Server) HandleSubscribe(c echo.Context) error {
 				log.Error("failed to wait for rate limiter", "error", err)
 				return fmt.Errorf("failed to wait for rate limiter: %w", err)
 			}
+
+			// When compression is enabled, the buffer contains the compressed message
+			if compress {
+				if err := ws.WriteMessage(websocket.BinaryMessage, *msg); err != nil {
+					log.Error("failed to write message to websocket", "error", err)
+					return nil
+				}
+				continue
+			}
+
 			if err := ws.WriteMessage(websocket.TextMessage, *msg); err != nil {
 				log.Error("failed to write message to websocket", "error", err)
 				return nil
