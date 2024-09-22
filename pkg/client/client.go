@@ -64,7 +64,7 @@ func NewClient(config *ClientConfig, logger *slog.Logger, scheduler Scheduler) (
 	}
 
 	if config.Compress {
-		c.config.ExtraHeaders["Accept-Encoding"] = "zstd"
+		c.config.ExtraHeaders["Socket-Encoding"] = "zstd"
 		dec, err := zstd.NewReader(nil, zstd.WithDecoderDicts(models.ZSTDDictionary))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create zstd decoder: %w", err)

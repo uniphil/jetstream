@@ -311,8 +311,8 @@ func (s *Server) HandleSubscribe(c echo.Context) error {
 	}
 
 	// Check if the user wants zstd compression
-	acceptEncoding := c.Request().Header.Get("Accept-Encoding")
-	compress := strings.Contains(acceptEncoding, "zstd")
+	socketEncoding := c.Request().Header.Get("Socket-Encoding")
+	compress := strings.Contains(socketEncoding, "zstd")
 
 	var cursor *int64
 	var err error
