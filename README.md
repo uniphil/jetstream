@@ -48,6 +48,8 @@ Jetstream supports `zstd`-based compression of messages. Jetstream uses a custom
 
 The provided client library uses compression by default, using an embedded copy of the Dictionary from the `models` package.
 
+To request a compressed stream, pass the `Socket-Encoding: zstd` header through when initiating the websocket.
+
 ### Examples
 
 A simple example that hits the public instance looks like:
