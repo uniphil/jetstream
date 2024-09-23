@@ -86,6 +86,7 @@ func (s *Server) Emit(ctx context.Context, e *models.Event, asJSON, compBytes []
 		collection = e.Commit.Collection
 	}
 
+	// Wrap the valuer functions for more lightweight event filtering
 	getJSONEvent := func() []byte { return asJSON }
 	getCompressedEvent := func() []byte { return compBytes }
 
@@ -125,6 +126,9 @@ func (s *Server) Emit(ctx context.Context, e *models.Event, asJSON, compBytes []
 	return nil
 }
 
+// emitToSubscriber sends an event to a subscriber if the subscriber wants the event
+// It takes a valuer function to get the event bytes so that the caller can avoid
+// unnecessary allocations and/or reading from the playback DB if the subscriber doesn't want the event
 func emitToSubscriber(ctx context.Context, log *slog.Logger, sub *Subscriber, timeUS int64, did, collection string, playback bool, getEventBytes func() []byte) error {
 	if !sub.WantsCollection(collection) {
 		return nil

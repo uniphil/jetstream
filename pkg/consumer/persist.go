@@ -207,7 +207,8 @@ func (c *Consumer) ReplayEvents(ctx context.Context, compressed bool, cursor int
 			collection = parts[2]
 		}
 
-		// Emit the event
+		// Emit the event with the valuer function so the subscriber can decide if it wants to filter it out
+		// without having to read the entire event from the database
 		err = emit(ctx, timeUS, parts[1], collection, iter.Value)
 		if err != nil {
 			log.Error("failed to emit event", "error", err)
