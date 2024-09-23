@@ -72,8 +72,8 @@ func NewConsumer(
 		return nil, fmt.Errorf("failed to create clock: %w", err)
 	}
 
-	// Create a zstd encoder using the dictionary and a window size of 1MB
-	encoder, err := zstd.NewWriter(nil, zstd.WithEncoderDict(models.ZSTDDictionary), zstd.WithWindowSize(1<<20), zstd.WithEncoderConcurrency(1))
+	// Create a zstd encoder using the dictionary and a window size of 8KB
+	encoder, err := zstd.NewWriter(nil, zstd.WithEncoderDict(models.ZSTDDictionary), zstd.WithWindowSize(2<<12), zstd.WithEncoderConcurrency(1))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create zstd encoder: %w", err)
 	}
