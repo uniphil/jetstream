@@ -90,6 +90,8 @@ func (s *Server) Emit(ctx context.Context, e *models.Event, asJSON, compBytes []
 	getJSONEvent := func() []byte { return asJSON }
 	getCompressedEvent := func() []byte { return compBytes }
 
+	// Concurrently emit to all subscribers
+	// We can't move on until all subscribers have received the event or been dropped for being too slow
 	sem := semaphore.NewWeighted(maxConcurrentEmits)
 	for _, sub := range s.Subscribers {
 		if err := sem.Acquire(ctx, 1); err != nil {
@@ -106,7 +108,7 @@ func (s *Server) Emit(ctx context.Context, e *models.Event, asJSON, compBytes []
 				return
 			}
 
-			// Pick the event valuer for the subscriber
+			// Pick the event valuer for the subscriber based on their compression preference
 			getEventBytes := getJSONEvent
 			if sub.compress {
 				getEventBytes = getCompressedEvent

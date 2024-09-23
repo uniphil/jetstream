@@ -343,19 +343,24 @@ func (c *Consumer) RunSequencer(ctx context.Context) error {
 				e.TimeUS = c.clock.Now()
 				c.sequenced.Inc()
 
-				// Encode the event in JSON and compress it
+				// Serialize the event as JSON
 				asJSON, err := json.Marshal(e)
 				if err != nil {
 					log.Error("failed to marshal event", "error", err)
 					return
 				}
+
+				// Compress the serialized JSON using zstd
 				compBytes := c.encoder.EncodeAll(asJSON, nil)
 
+				// Persist the event to the uncompressed and compressed DBs
 				if err := c.PersistEvent(ctx, e, asJSON, compBytes); err != nil {
 					log.Error("failed to persist event", "error", err)
 					return
 				}
 				c.persisted.Inc()
+
+				// Emit the event to subscribers
 				if err := c.Emit(ctx, e, asJSON, compBytes); err != nil {
 					log.Error("failed to emit event", "error", err)
 				}

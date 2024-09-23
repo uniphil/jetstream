@@ -100,14 +100,14 @@ func (c *Consumer) PersistEvent(ctx context.Context, evt *models.Event, asJSON, 
 		key = []byte(fmt.Sprintf("%d_%s", evt.TimeUS, evt.Did))
 	}
 
-	// Write the event to the uncompressed DB
+	// Write the uncompressed event to the uncompressed DB
 	err := c.UncompressedDB.Set(key, asJSON, pebble.NoSync)
 	if err != nil {
 		log.Error("failed to write event to pebble", "error", err)
 		return fmt.Errorf("failed to write event to pebble: %w", err)
 	}
 
-	// Compress the event and write it to the compressed DB
+	// Write the compressed event to the compressed DB
 	err = c.CompressedDB.Set(key, compBytes, pebble.NoSync)
 	if err != nil {
 		log.Error("failed to write compressed event to pebble", "error", err)
