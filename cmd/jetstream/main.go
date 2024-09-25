@@ -17,10 +17,10 @@ import (
 	"github.com/bluesky-social/indigo/events"
 	"github.com/bluesky-social/indigo/events/schedulers/parallel"
 	"github.com/bluesky-social/jetstream/pkg/consumer"
+	"github.com/bluesky-social/jetstream/pkg/server"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.opentelemetry.io/otel"
 
 	"github.com/urfave/cli/v2"
 )
@@ -103,8 +103,6 @@ func main() {
 	}
 }
 
-var tracer = otel.Tracer("Jetstream")
-
 // Jetstream is the main function for jetstream
 func Jetstream(cctx *cli.Context) error {
 	ctx := cctx.Context
@@ -119,7 +117,7 @@ func Jetstream(cctx *cli.Context) error {
 		return fmt.Errorf("failed to parse ws-url: %w", err)
 	}
 
-	s, err := NewServer(cctx.Float64("max-sub-rate"))
+	s, err := server.NewServer(cctx.Float64("max-sub-rate"))
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)
 	}
