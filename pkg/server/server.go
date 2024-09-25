@@ -172,6 +172,8 @@ func (s *Server) HandleSubscribe(c echo.Context) error {
 						sub.hello <- struct{}{}
 						requireHello = false
 					}
+				default:
+					log.Warn("received unexpected message type from client, ignoring", "type", subMessage.Type)
 				}
 			case websocket.BinaryMessage:
 				log.Warn("received unexpected binary message from client, ignoring")
