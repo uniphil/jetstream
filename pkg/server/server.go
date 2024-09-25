@@ -125,7 +125,7 @@ func (s *Server) HandleSubscribe(c echo.Context) error {
 
 			switch msgType {
 			case websocket.PingMessage:
-				if err := ws.WriteMessage(websocket.PongMessage, nil); err != nil {
+				if err := sub.WriteMessage(websocket.PongMessage, nil); err != nil {
 					log.Error("failed to write pong to websocket", "error", err)
 					cancel()
 					return
@@ -241,7 +241,7 @@ func (s *Server) HandleSubscribe(c echo.Context) error {
 
 			// When compression is enabled, the msg is a zstd compressed message
 			if compress {
-				if err := ws.WriteMessage(websocket.BinaryMessage, *msg); err != nil {
+				if err := sub.WriteMessage(websocket.BinaryMessage, *msg); err != nil {
 					log.Error("failed to write message to websocket", "error", err)
 					return nil
 				}
@@ -249,7 +249,7 @@ func (s *Server) HandleSubscribe(c echo.Context) error {
 			}
 
 			// Otherwise, the msg is serialized JSON
-			if err := ws.WriteMessage(websocket.TextMessage, *msg); err != nil {
+			if err := sub.WriteMessage(websocket.TextMessage, *msg); err != nil {
 				log.Error("failed to write message to websocket", "error", err)
 				return nil
 			}

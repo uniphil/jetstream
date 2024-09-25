@@ -21,6 +21,7 @@ type WantedCollections struct {
 
 type Subscriber struct {
 	ws     *websocket.Conn
+	conLk  sync.Mutex
 	realIP string
 	lk     sync.Mutex
 	seq    int64
@@ -266,7 +267,14 @@ func (s *Subscriber) UpdateOptions(opts *SubscriberOptions) {
 
 // Terminate sends a close message to the subscriber
 func (s *Subscriber) Terminate(reason string) error {
-	return s.ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, reason))
+	return s.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, reason))
+}
+
+func (s *Subscriber) WriteMessage(msgType int, data []byte) error {
+	s.conLk.Lock()
+	defer s.conLk.Unlock()
+
+	return s.ws.WriteMessage(msgType, data)
 }
 
 func (s *Subscriber) SetCursor(cursor *int64) {
