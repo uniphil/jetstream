@@ -39,16 +39,8 @@ The following Query Parameters are supported:
 - `cursor` - A unix microseconds timestamp cursor to begin playback from
   - An absent cursor or a cursor from the future will result in live-tail operation
   - When reconnecting, use the `time_us` from your most recently processed event and maybe provide a negative buffer (i.e. subtract a few seconds) to ensure gapless playback
-
-### Compression
-
-Jetstream supports `zstd`-based compression of messages. Jetstream uses a custom dictionary for compression that can be found in `pkg/models/zstd_dictionary` and is required to decode compressed messages from the server.
-
-`zstd` compressed Jetstream messages are ~56% smaller on average than the raw JSON version of the Jetstream firehose.
-
-The provided client library uses compression by default, using an embedded copy of the Dictionary from the `models` package.
-
-To request a compressed stream, pass the `Socket-Encoding: zstd` header through when initiating the websocket.
+- `compress` - Set to `true` to enable `zstd` [compression](#compression)
+- `requireHello` - Set to `true` to pause replay/live-tail until the server recevies a [`SubscriberOptionsUpdatePayload`](#options-updates) over the socket in a [Subscriber Sourced Message](#subscriber-sourced-messages)
 
 ### Examples
 
@@ -150,6 +142,68 @@ Jetstream Commits have 3 `types`:
   }
 }
 ```
+
+### Compression
+
+Jetstream supports `zstd`-based compression of messages. Jetstream uses a custom dictionary for compression that can be found in `pkg/models/zstd_dictionary` and is required to decode compressed messages from the server.
+
+`zstd` compressed Jetstream messages are ~56% smaller on average than the raw JSON version of the Jetstream firehose.
+
+The provided client library uses compression by default, using an embedded copy of the Dictionary from the `models` package.
+
+To request a compressed stream, pass the `Socket-Encoding: zstd` header through when initiating the websocket _or_ pass `compress=true` in the query string.
+
+### Subscriber Sourced messages
+
+Subscribers can send Text messages to Jetstream over the websocket using the `SubscriberSourcedMessage` framing below:
+
+```go
+type SubscriberSourcedMessage struct {
+	Type    string          `json:"type"`
+	Payload json.RawMessage `json:"payload"`
+}
+```
+
+The supported message types are as follows:
+
+- `options_update`
+
+#### Options Updates
+
+A client can update their `wantedCollections` and `wantedDids` after connecting to the socket by sending a Subscriber Sourced Message.
+
+To send an Options Update, provide the string `options_update` in the `type` field and a `SubscriberOptionsUpdatePayload` in the `payload` field.
+
+The shape for a `SubscriberOptionsUpdatePayload` is as follows:
+
+```go
+type SubscriberOptionsUpdateMsg struct {
+	WantedCollections []string `json:"wantedCollections"`
+	WantedDIDs        []string `json:"wantedDids"`
+}
+```
+
+If either array is empty, the relevant filter will be disabled (i.e. sending empty `wantedDids` will mean a client gets messages for all DIDs again).
+
+Some limitations apply around the size of the message: right now the message can be at most 10MB in size and can contain up to 100 collection filters _and_ up to 10,000 DID filters.
+
+Additionally, a client can connect with `?requireHello=true` in the query params to pause replay/live-tail until the first Options Update message is sent by the client over the socket.
+
+Invalid Options Updates in `requireHello` mode or normal operating mode will result in the client being disconnected.
+
+An example Subscriber Sourced Message with an Options Update payload is as follows:
+
+```json
+{
+  "type": "options_update",
+  "payload": {
+    "wantedCollections": ["app.bsky.feed.post"],
+    "wantedDids": ["did:plc:q6gjnaw2blty4crticxkmujt"]
+  }
+}
+```
+
+The above payload will filter such that a client receives only posts, and only from a the specified DID.
 
 ### Dashboard Preview
 
