@@ -138,29 +138,40 @@ func (s *Server) HandleSubscribe(c echo.Context) error {
 				log.Info("received text message from client, parsing as subscriber options update")
 				log.Debug("text message from client content", "msg", string(msgBytes))
 
-				var subOptsUpdate SubscriberOptionsUpdateMsg
-				if err := json.Unmarshal(msgBytes, &subOptsUpdate); err != nil {
-					log.Error("failed to unmarshal subscriber options update", "error", err, "msg", string(msgBytes))
-					sub.Terminate(fmt.Sprintf("failed to unmarshal subscriber options update: %v", err))
+				var subMessage SubscriberSourcedMessage
+				if err := json.Unmarshal(msgBytes, &subMessage); err != nil {
+					log.Error("failed to unmarshal subscriber sourced message", "error", err, "msg", string(msgBytes))
+					sub.Terminate(fmt.Sprintf("failed to unmarshal subscriber sourced message: %v", err))
 					cancel()
 					return
 				}
 
-				// Only WantedCollections and WantedDIDs can be updated after the initial connection
-				// Cursor and Compression settings are fixed for the lifetime of the stream
-				subscriberOpts, err = parseSubscriberOptions(ctx, subOptsUpdate.WantedCollections, subOptsUpdate.WantedDIDs, compress, sub.cursor)
-				if err != nil {
-					log.Error("failed to parse subscriber options", "error", err, "new_opts", subOptsUpdate)
-					sub.Terminate(fmt.Sprintf("failed to parse subscriber options: %v", err))
-					cancel()
-					return
-				}
+				switch subMessage.Type {
+				case SubMessageOptionsUpdate:
+					var subOptsUpdate SubscriberOptionsUpdatePayload
+					if err := json.Unmarshal(subMessage.Payload, &subOptsUpdate); err != nil {
+						log.Error("failed to unmarshal subscriber options update", "error", err, "msg", string(msgBytes))
+						sub.Terminate(fmt.Sprintf("failed to unmarshal subscriber options update: %v", err))
+						cancel()
+						return
+					}
 
-				sub.UpdateOptions(subscriberOpts)
+					// Only WantedCollections and WantedDIDs can be updated after the initial connection
+					// Cursor and Compression settings are fixed for the lifetime of the stream
+					subscriberOpts, err = parseSubscriberOptions(ctx, subOptsUpdate.WantedCollections, subOptsUpdate.WantedDIDs, compress, sub.cursor)
+					if err != nil {
+						log.Error("failed to parse subscriber options", "error", err, "new_opts", subOptsUpdate)
+						sub.Terminate(fmt.Sprintf("failed to parse subscriber options: %v", err))
+						cancel()
+						return
+					}
 
-				if requireHello {
-					sub.hello <- struct{}{}
-					requireHello = false
+					sub.UpdateOptions(subscriberOpts)
+
+					if requireHello {
+						sub.hello <- struct{}{}
+						requireHello = false
+					}
 				}
 			case websocket.BinaryMessage:
 				log.Warn("received unexpected binary message from client, ignoring")
