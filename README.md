@@ -4,6 +4,27 @@ Jetstream is a streaming service that consumes an ATProto `com.atproto.sync.subs
 
 Jetstream converts the CBOR-encoded MST blocks produced by the ATProto firehose and translates them into JSON objects that are easier to interface with using standard tooling available in programming languages.
 
+### Public Instances
+
+As of writing, there are 4 official public Jetstream instances operated by Bluesky.
+
+| Hostname                        | Region  |
+| ------------------------------- | ------- |
+| jetstream1.us-east.bsky.network | US-East |
+| jetstream2.us-east.bsky.network | US-East |
+| jetstream1.us-west.bsky.network | US-West |
+| jetstream2.us-west.bsky.network | US-West |
+
+Connect to these instances over WSS: `wss://jetstream2.us-west.bsky.network/subscribe`
+
+We will monitor and operate these instances and do our best to keep them available for public use by developers.
+
+Feel free to have multiple connections to Jetstream instances if needed. We encourage you to make use of Jetstream wherever you may consider using the `com.atproto.sync.subscribeRepos` firehose if you don't need the features of the full sync protocol.
+
+Because cursors for Jetstream are time-based (unix microseconds), you can use the same cursor for multiple instances to get roughly the same data.
+
+When switching between instances, it may be prudent to rewind your cursor a few seconds for gapless playback if you process events idempotently.
+
 ## Running Jetstream
 
 To run Jetstream, make sure you have docker and docker compose installed and run `make up` in the repo root.
@@ -26,8 +47,6 @@ To consume Jetstream you can use any websocket client
 
 Connect to `ws://localhost:6008/subscribe` to start the stream
 
-- A publicly available instance of Jetstream is available at `wss://jetstream.atproto.tools/subscribe`
-
 The following Query Parameters are supported:
 
 - `wantedCollections` - An array of [Collection NSIDs](https://atproto.com/specs/nsid) to filter which records you receive on your stream (default empty = all collections)
@@ -47,7 +66,7 @@ The following Query Parameters are supported:
 A simple example that hits the public instance looks like:
 
 ```bash
-$ websocat wss://jetstream.atproto.tools/subscribe\?wantedCollections=app.bsky.feed.post
+$ websocat wss://jetstream2.us-east.bsky.network/subscribe\?wantedCollections=app.bsky.feed.post
 ```
 
 A maximal example using all parameters looks like:
