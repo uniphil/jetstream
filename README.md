@@ -8,12 +8,12 @@ Jetstream converts the CBOR-encoded MST blocks produced by the ATProto firehose 
 
 As of writing, there are 4 official public Jetstream instances operated by Bluesky.
 
-| Hostname                        | Region  |
-| ------------------------------- | ------- |
-| jetstream1.us-east.bsky.network | US-East |
-| jetstream2.us-east.bsky.network | US-East |
-| jetstream1.us-west.bsky.network | US-West |
-| jetstream2.us-west.bsky.network | US-West |
+| Hostname                          | Region  |
+| --------------------------------- | ------- |
+| `jetstream1.us-east.bsky.network` | US-East |
+| `jetstream2.us-east.bsky.network` | US-East |
+| `jetstream1.us-west.bsky.network` | US-West |
+| `jetstream2.us-west.bsky.network` | US-West |
 
 Connect to these instances over WSS: `wss://jetstream2.us-west.bsky.network/subscribe`
 
