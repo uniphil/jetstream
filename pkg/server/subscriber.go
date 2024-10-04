@@ -234,7 +234,7 @@ func (s *Server) RemoveSubscriber(num int64) {
 
 // WantsCollection returns true if the subscriber wants the given collection
 func (sub *Subscriber) WantsCollection(collection string) bool {
-	if sub.wantedCollections == nil {
+	if sub.wantedCollections == nil || collection == "" {
 		return true
 	}
 
