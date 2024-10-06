@@ -93,15 +93,17 @@ func (s *Server) HandleSubscribe(c echo.Context) error {
 		return err
 	}
 
+	subIP := c.RealIP()
+
 	ws, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
 		return err
 	}
 	defer ws.Close()
 
-	log := slog.With("source", "server_handle_subscribe", "socket_addr", ws.RemoteAddr().String(), "real_ip", c.RealIP())
+	log := slog.With("source", "server_handle_subscribe", "socket_addr", ws.RemoteAddr().String(), "real_ip", subIP)
 
-	sub, err := s.AddSubscriber(ws, c.RealIP(), subscriberOpts)
+	sub, err := s.AddSubscriber(ws, subIP, subscriberOpts)
 	if err != nil {
 		log.Error("failed to add subscriber", "error", err)
 		return err
