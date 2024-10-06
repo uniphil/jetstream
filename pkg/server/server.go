@@ -296,7 +296,7 @@ func (s *Server) Emit(ctx context.Context, e *models.Event, asJSON, compBytes []
 			defer sub.lk.Unlock()
 
 			// Don't emit events to subscribers that are replaying and are too far behind
-			if sub.cursor != nil && sub.seq < e.TimeUS-cutoverThresholdUS {
+			if sub.cursor != nil && sub.seq < e.TimeUS-cutoverThresholdUS || sub.tearingDown {
 				return
 			}
 

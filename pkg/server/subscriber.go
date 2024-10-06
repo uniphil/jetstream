@@ -20,14 +20,15 @@ type WantedCollections struct {
 }
 
 type Subscriber struct {
-	ws     *websocket.Conn
-	conLk  sync.Mutex
-	realIP string
-	lk     sync.Mutex
-	seq    int64
-	outbox chan *[]byte
-	hello  chan struct{}
-	id     int64
+	ws          *websocket.Conn
+	conLk       sync.Mutex
+	realIP      string
+	lk          sync.Mutex
+	seq         int64
+	outbox      chan *[]byte
+	hello       chan struct{}
+	id          int64
+	tearingDown bool
 
 	// Subscriber options
 
@@ -99,11 +100,16 @@ func emitToSubscriber(ctx context.Context, log *slog.Logger, sub *Subscriber, ti
 		default:
 			// Drop slow subscribers if they're live tailing and fall too far behind
 			log.Error("failed to send event to subscriber, dropping", "error", "buffer full", "subscriber", sub.id)
-			sub.Terminate("consuming too slowly")
-			err := sub.ws.Close()
-			if err != nil {
-				log.Error("failed to close subscriber connection", "error", err)
-			}
+
+			// Tearing down a subscriber can block, so do it in a goroutine
+			go func() {
+				sub.tearingDown = true
+				sub.Terminate("consuming too slowly")
+				err := sub.ws.Close()
+				if err != nil {
+					log.Error("failed to close subscriber connection", "error", err)
+				}
+			}()
 		}
 	}
 
