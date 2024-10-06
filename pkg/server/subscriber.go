@@ -104,7 +104,7 @@ func emitToSubscriber(ctx context.Context, log *slog.Logger, sub *Subscriber, ti
 			// Tearing down a subscriber can block, so do it in a goroutine
 			go func() {
 				sub.tearingDown = true
-				sub.Terminate("consuming too slowly")
+				// Don't send a close message cause they won't get it (the socket is backed up)
 				err := sub.ws.Close()
 				if err != nil {
 					log.Error("failed to close subscriber connection", "error", err)
