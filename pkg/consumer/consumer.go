@@ -240,30 +240,31 @@ func (c *Consumer) HandleRepoCommit(ctx context.Context, evt *comatproto.SyncSub
 		case repomgr.EvtKindCreateRecord:
 			if op.Cid == nil {
 				log.Error("update record op missing cid")
-				break
+				continue
 			}
 
 			rcid, recB, err := rr.GetRecordBytes(ctx, op.Path)
 			if err != nil {
 				log.Error("failed to get record bytes", "error", err)
-				break
+				continue
 			}
 
 			recCid := rcid.String()
 			if recCid != op.Cid.String() {
 				log.Error("record cid mismatch", "expected", *op.Cid, "actual", rcid)
-				break
+				continue
 			}
 
 			rec, err := data.UnmarshalCBOR(*recB)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal record: %w", err)
+				log.Error("failed to unmarshal record", "error", err)
+				continue
 			}
 
 			recJSON, err := json.Marshal(rec)
 			if err != nil {
 				log.Error("failed to marshal record to json", "error", err)
-				break
+				continue
 			}
 
 			e.Commit = &models.Commit{
@@ -277,30 +278,31 @@ func (c *Consumer) HandleRepoCommit(ctx context.Context, evt *comatproto.SyncSub
 		case repomgr.EvtKindUpdateRecord:
 			if op.Cid == nil {
 				log.Error("update record op missing cid")
-				break
+				continue
 			}
 
 			rcid, recB, err := rr.GetRecordBytes(ctx, op.Path)
 			if err != nil {
 				log.Error("failed to get record bytes", "error", err)
-				break
+				continue
 			}
 
 			recCid := rcid.String()
 			if recCid != op.Cid.String() {
 				log.Error("record cid mismatch", "expected", *op.Cid, "actual", rcid)
-				break
+				continue
 			}
 
 			rec, err := data.UnmarshalCBOR(*recB)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal record: %w", err)
+				log.Error("failed to unmarshal record", "error", err)
+				continue
 			}
 
 			recJSON, err := json.Marshal(rec)
 			if err != nil {
 				log.Error("failed to marshal record to json", "error", err)
-				break
+				continue
 			}
 
 			e.Commit = &models.Commit{
