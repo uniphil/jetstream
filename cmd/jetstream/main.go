@@ -332,17 +332,49 @@ func Jetstream(cctx *cli.Context) error {
 	}
 
 	log.Info("shutting down, waiting for workers to clean up...")
+
 	close(shutdownRepoStream)
 	close(shutdownLivenessChecker)
 	close(shutdownCursorManager)
 	close(shutdownEcho)
 	close(shutdownMetrics)
 
-	<-repoStreamShutdown
-	<-livenessCheckerShutdown
-	<-cursorManagerShutdown
-	<-echoShutdown
-	<-metricsShutdown
+	shutdownTimeout := time.After(10 * time.Second)
+
+	select {
+	case <-repoStreamShutdown:
+		log.Info("Repo stream shutdown completed")
+	case <-shutdownTimeout:
+		log.Warn("Shutdown timeout reached for repo stream")
+	}
+
+	select {
+	case <-livenessCheckerShutdown:
+		log.Info("Liveness checker shutdown completed")
+	case <-shutdownTimeout:
+		log.Warn("Shutdown timeout reached for liveness checker")
+	}
+
+	select {
+	case <-cursorManagerShutdown:
+		log.Info("Cursor manager shutdown completed")
+	case <-shutdownTimeout:
+		log.Warn("Shutdown timeout reached for cursor manager")
+	}
+
+	select {
+	case <-echoShutdown:
+		log.Info("Echo shutdown completed")
+	case <-shutdownTimeout:
+		log.Warn("Shutdown timeout reached for echo server")
+	}
+
+	select {
+	case <-metricsShutdown:
+		log.Info("Metrics shutdown completed")
+	case <-shutdownTimeout:
+		log.Warn("Shutdown timeout reached for metrics server")
+	}
 
 	c.Shutdown()
 

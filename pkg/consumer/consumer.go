@@ -116,6 +116,13 @@ func NewConsumer(
 func (c *Consumer) HandleStreamEvent(ctx context.Context, xe *events.XRPCStreamEvent) error {
 	ctx, span := tracer.Start(ctx, "HandleStreamEvent")
 	defer span.End()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	switch {
 	case xe.RepoCommit != nil:
 		eventsProcessedCounter.WithLabelValues("commit", c.SocketURL).Inc()
@@ -373,7 +380,14 @@ func (c *Consumer) RunSequencer(ctx context.Context) error {
 }
 
 func (c *Consumer) Shutdown() {
+	shutdownTimeout := time.After(10 * time.Second)
 	shutdown := make(chan struct{})
 	c.sequencerShutdown <- shutdown
-	<-shutdown
+
+	select {
+	case <-shutdownTimeout:
+		c.logger.Warn("sequencer shutdown timed out")
+	case <-shutdown:
+		c.logger.Info("sequencer shutdown complete")
+	}
 }
