@@ -20,6 +20,7 @@ import (
 	"github.com/bluesky-social/jetstream/pkg/server"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/urfave/cli/v2"
@@ -212,6 +213,10 @@ func Jetstream(cctx *cli.Context) error {
 	}
 
 	e := echo.New()
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodOptions},
+	}))
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Welcome to Jetstream")
 	})
