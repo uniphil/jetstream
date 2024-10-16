@@ -77,17 +77,17 @@ $ websocat "ws://localhost:6008/subscribe?wantedCollections=app.bsky.feed.post&w
 
 ### Example events:
 
-Jetstream events have 3 `type`s (so far):
+Jetstream events have 3 `kinds`s (so far):
 
-- `com`: a Commit to a repo which involves either a create, update, or delete of a record
-- `id`: an Identity update for a DID which indicates that you may want to purge an identity cache and revalidate the DID doc and handle
-- `acc`: an Account event that indicates a change in account status i.e. from `active` to `deactivated`, or to `takendown` if the PDS has taken down the repo.
+- `commit`: a Commit to a repo which involves either a create, update, or delete of a record
+- `identity`: an Identity update for a DID which indicates that you may want to purge an identity cache and revalidate the DID doc and handle
+- `account`: an Account event that indicates a change in account status i.e. from `active` to `deactivated`, or to `takendown` if the PDS has taken down the repo.
 
-Jetstream Commits have 3 `types`:
+Jetstream Commits have 3 `operations`:
 
-- `c`: Create a new record with the contents provided
-- `u`: Update an existing record and replace it with the contents provided
-- `d`: Delete an existing record with the DID, Collection, and RKey provided
+- `create`: Create a new record with the contents provided
+- `update`: Update an existing record and replace it with the contents provided
+- `delete`: Delete an existing record with the DID, Collection, and RKey provided
 
 #### A like committed to a repo
 
@@ -95,10 +95,10 @@ Jetstream Commits have 3 `types`:
 {
   "did": "did:plc:eygmaihciaxprqvxpfvl6flk",
   "time_us": 1725911162329308,
-  "type": "com",
+  "kind": "commit",
   "commit": {
     "rev": "3l3qo2vutsw2b",
-    "type": "c",
+    "operation": "create",
     "collection": "app.bsky.feed.like",
     "rkey": "3l3qo2vuowo2b",
     "record": {
@@ -120,10 +120,10 @@ Jetstream Commits have 3 `types`:
 {
   "did": "did:plc:rfov6bpyztcnedeyyzgfq42k",
   "time_us": 1725516666833633,
-  "type": "com",
+  "type": "commit",
   "commit": {
     "rev": "3l3f6nzl3cv2s",
-    "type": "d",
+    "operation": "delete",
     "collection": "app.bsky.graph.follow",
     "rkey": "3l3dn7tku762u"
   }
@@ -136,7 +136,7 @@ Jetstream Commits have 3 `types`:
 {
   "did": "did:plc:ufbl4k27gp6kzas5glhz7fim",
   "time_us": 1725516665234703,
-  "type": "id",
+  "kind": "identity",
   "identity": {
     "did": "did:plc:ufbl4k27gp6kzas5glhz7fim",
     "handle": "yohenrique.bsky.social",
@@ -152,7 +152,7 @@ Jetstream Commits have 3 `types`:
 {
   "did": "did:plc:ufbl4k27gp6kzas5glhz7fim",
   "time_us": 1725516665333808,
-  "type": "acc",
+  "kind": "account",
   "account": {
     "active": true,
     "did": "did:plc:ufbl4k27gp6kzas5glhz7fim",
