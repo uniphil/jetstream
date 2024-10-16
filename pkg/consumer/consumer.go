@@ -145,6 +145,7 @@ func (c *Consumer) HandleStreamEvent(ctx context.Context, xe *events.XRPCStreamE
 		// Emit identity update
 		e := models.Event{
 			Did:       xe.RepoIdentity.Did,
+			Kind:      models.EventKindIdentity,
 			EventType: models.EventIdentity,
 			Identity:  xe.RepoIdentity,
 		}
@@ -168,6 +169,7 @@ func (c *Consumer) HandleStreamEvent(ctx context.Context, xe *events.XRPCStreamE
 		// Emit account update
 		e := models.Event{
 			Did:       xe.RepoAccount.Did,
+			Kind:      models.EventKindAccount,
 			EventType: models.EventAccount,
 			Account:   xe.RepoAccount,
 		}
@@ -234,6 +236,7 @@ func (c *Consumer) HandleRepoCommit(ctx context.Context, evt *comatproto.SyncSub
 		e := models.Event{
 			Did:       evt.Repo,
 			EventType: models.EventCommit,
+			Kind:      models.EventKindCommit,
 		}
 
 		switch ek {
@@ -269,6 +272,7 @@ func (c *Consumer) HandleRepoCommit(ctx context.Context, evt *comatproto.SyncSub
 
 			e.Commit = &models.Commit{
 				Rev:        evt.Rev,
+				Operation:  models.CommitOperationCreate,
 				OpType:     models.CommitCreateRecord,
 				Collection: collection,
 				RKey:       rkey,
@@ -307,6 +311,7 @@ func (c *Consumer) HandleRepoCommit(ctx context.Context, evt *comatproto.SyncSub
 
 			e.Commit = &models.Commit{
 				Rev:        evt.Rev,
+				Operation:  models.CommitOperationUpdate,
 				OpType:     models.CommitUpdateRecord,
 				Collection: collection,
 				RKey:       rkey,
@@ -317,6 +322,7 @@ func (c *Consumer) HandleRepoCommit(ctx context.Context, evt *comatproto.SyncSub
 			// Emit the delete
 			e.Commit = &models.Commit{
 				Rev:        evt.Rev,
+				Operation:  models.CommitOperationDelete,
 				OpType:     models.CommitDeleteRecord,
 				Collection: collection,
 				RKey:       rkey,
