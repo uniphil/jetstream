@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	serverAddr = "ws://localhost:6008/subscribe"
+	serverAddr = "wss://jetstream.atproto.tools/subscribe"
 )
 
 func main() {
@@ -31,10 +31,6 @@ func main() {
 	config.WebsocketURL = serverAddr
 	config.Compress = true
 
-	h := &handler{
-		seenSeqs: make(map[int64]struct{}),
-	}
-
 	scheduler := sequential.NewScheduler("jetstream_localdev", logger, h.HandleEvent)
 
 	c, err := client.NewClient(config, logger, scheduler)
@@ -42,7 +38,7 @@ func main() {
 		log.Fatalf("failed to create client: %v", err)
 	}
 
-	cursor := time.Now().Add(5 * -time.Hour).UnixMicro()
+	cursor := time.Now().Add(90 * -time.Minute).UnixMicro()
 
 	// Every 5 seconds print the events read and bytes read and average event size
 	go func() {
@@ -71,17 +67,15 @@ type handler struct {
 }
 
 func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
-	// fmt.Println("evt")
-
 	// Unmarshal the record if there is one
-	if event.Commit != nil && (event.Commit.OpType == models.CommitCreateRecord || event.Commit.OpType == models.CommitUpdateRecord) {
+	if event.Commit != nil && (event.Commit.Operation == models.CommitOperationCreate || event.Commit.Operation == models.CommitOperationUpdate) {
 		switch event.Commit.Collection {
 		case "app.bsky.feed.post":
 			var post apibsky.FeedPost
 			if err := json.Unmarshal(event.Commit.Record, &post); err != nil {
 				return fmt.Errorf("failed to unmarshal post: %w", err)
 			}
-			// fmt.Printf("%v |(%s)| %s\n", time.UnixMicro(event.TimeUS).Local().Format("15:04:05"), event.Did, post.Text)
+			fmt.Printf("%v |(%s)| %s\n", time.UnixMicro(event.TimeUS).Local().Format("15:04:05"), event.Did, post.Text)
 		}
 	}
 
