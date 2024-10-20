@@ -120,7 +120,7 @@ Jetstream Commits have 3 `operations`:
 {
   "did": "did:plc:rfov6bpyztcnedeyyzgfq42k",
   "time_us": 1725516666833633,
-  "type": "commit",
+  "kind": "commit",
   "commit": {
     "rev": "3l3f6nzl3cv2s",
     "operation": "delete",
