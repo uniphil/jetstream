@@ -28,7 +28,12 @@ type Server struct {
 	seq         int64
 }
 
-var upgrader = websocket.Upgrader{}
+var upgrader = websocket.Upgrader{
+	// Allow all origins in websocket upgrade requests
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
 var maxConcurrentEmits = int64(100)
 var cutoverThresholdUS = int64(1_000_000)
 var tracer = otel.Tracer("jetstream-server")
