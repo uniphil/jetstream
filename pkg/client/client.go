@@ -116,9 +116,11 @@ func (c *Client) ConnectAndRead(ctx context.Context, cursor *int64) error {
 	c.con = con
 
 	if err := c.readLoop(ctx); err != nil {
-		c.logger.Error("read loop failed", "error", err)
-	} else {
-		c.con.Close()
+		return fmt.Errorf("read loop failed: %w", err)
+	}
+
+	if err := c.con.Close(); err != nil {
+		return fmt.Errorf("failed to close connection: %w", err)
 	}
 
 	return nil
