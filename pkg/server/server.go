@@ -66,6 +66,9 @@ func (s *Server) HandleSubscribe(c echo.Context) error {
 	qWantedCollections := c.Request().URL.Query()["wantedCollections"]
 	qWantedDids := c.Request().URL.Query()["wantedDids"]
 
+	qMaxMessageSizeBytes := c.Request().URL.Query().Get("maxMessageSizeBytes")
+	qMaxMessageSizeBytesValue := ParseMaxMessageSizeBytes(qMaxMessageSizeBytes)
+
 	// Check if the user wants to initialize options over the websocket before subscribing
 	requireHello := c.Request().URL.Query().Get("requireHello") == "true"
 
@@ -92,7 +95,7 @@ func (s *Server) HandleSubscribe(c echo.Context) error {
 	}
 
 	// Parse the subscriber options
-	subscriberOpts, err := parseSubscriberOptions(ctx, qWantedCollections, qWantedDids, compress, cursor)
+	subscriberOpts, err := parseSubscriberOptions(ctx, qWantedCollections, qWantedDids, compress, qMaxMessageSizeBytesValue, cursor)
 	if err != nil {
 		c.String(http.StatusBadRequest, err.Error())
 		return err
@@ -163,9 +166,10 @@ func (s *Server) HandleSubscribe(c echo.Context) error {
 						return
 					}
 
+					maxMessageSizeBytes := ParseMaxMessageSizeBytes(subOptsUpdate.MaxMessageSizeBytes)
 					// Only WantedCollections and WantedDIDs can be updated after the initial connection
 					// Cursor and Compression settings are fixed for the lifetime of the stream
-					subscriberOpts, err = parseSubscriberOptions(ctx, subOptsUpdate.WantedCollections, subOptsUpdate.WantedDIDs, compress, sub.cursor)
+					subscriberOpts, err = parseSubscriberOptions(ctx, subOptsUpdate.WantedCollections, subOptsUpdate.WantedDIDs, compress, maxMessageSizeBytes, sub.cursor)
 					if err != nil {
 						log.Error("failed to parse subscriber options", "error", err, "new_opts", subOptsUpdate)
 						sub.Terminate(fmt.Sprintf("failed to parse subscriber options: %v", err))

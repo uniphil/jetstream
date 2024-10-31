@@ -19,6 +19,7 @@ type ClientConfig struct {
 	WebsocketURL      string
 	WantedDids        []string
 	WantedCollections []string
+	MaxSize           uint32
 	ExtraHeaders      map[string]string
 }
 
@@ -44,6 +45,7 @@ func DefaultClientConfig() *ClientConfig {
 		WebsocketURL:      "ws://localhost:6008/subscribe",
 		WantedDids:        []string{},
 		WantedCollections: []string{},
+		MaxSize:           0,
 		ExtraHeaders: map[string]string{
 			"User-Agent": "jetstream-client/v0.0.1",
 		},
@@ -93,6 +95,10 @@ func (c *Client) ConnectAndRead(ctx context.Context, cursor *int64) error {
 
 	for _, collection := range c.config.WantedCollections {
 		params = append(params, fmt.Sprintf("wantedCollections=%s", collection))
+	}
+
+	if c.config.MaxSize > 0 {
+		params = append(params, fmt.Sprintf("maxSize=%d", c.config.MaxSize))
 	}
 
 	if len(params) > 0 {

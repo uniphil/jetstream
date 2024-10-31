@@ -194,7 +194,7 @@ func Jetstream(cctx *cli.Context) error {
 			case <-ticker.C:
 				seq, _ := c.Progress.Get()
 				if seq == lastSeq && seq != 0 {
-					log.Error("no new events in last "+ cctx.Duration("liveness-ttl").String() +", shutting down for docker to restart me", "seq", seq)
+					log.Error("no new events in last "+cctx.Duration("liveness-ttl").String()+", shutting down for docker to restart me", "seq", seq)
 					close(livenessKill)
 				} else {
 					// Trim the database
