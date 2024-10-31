@@ -200,7 +200,7 @@ The shape for a `SubscriberOptionsUpdatePayload` is as follows:
 type SubscriberOptionsUpdateMsg struct {
 	WantedCollections []string `json:"wantedCollections"`
 	WantedDIDs        []string `json:"wantedDids"`
-    MaxSize           int      `json:"maxSize"`
+	MaxSize           int      `json:"maxSize"`
 }
 ```
 
