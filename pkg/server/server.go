@@ -285,7 +285,7 @@ func (s *Server) Emit(ctx context.Context, e *models.Event, asJSON, compBytes []
 	bytesEmitted.Add(evtSize)
 
 	collection := ""
-	if e.EventType == models.EventCommit && e.Commit != nil {
+	if e.Kind == models.EventKindCommit && e.Commit != nil {
 		collection = e.Commit.Collection
 	}
 
