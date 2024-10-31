@@ -55,7 +55,7 @@ The following Query Parameters are supported:
   - You can specify at most 100 wanted collections/prefixes.
 - `wantedDids` - An array of Repo DIDs to filter which records you receive on your stream (Default empty = all repos)
   - You can specify at most 10,000 wanted DIDs.
-- `maxSize` - The maximum size in bytes for a payload that this client would like to receive. Zero means no limit, negative values are treated as zero. (Default "0" or empty = no maximum size)
+- `maxMessageSizeBytes` - The maximum size of a payload that this client would like to receive. Zero means no limit, negative values are treated as zero. (Default "0" or empty = no maximum size)
 - `cursor` - A unix microseconds timestamp cursor to begin playback from
   - An absent cursor or a cursor from the future will result in live-tail operation
   - When reconnecting, use the `time_us` from your most recently processed event and maybe provide a negative buffer (i.e. subtract a few seconds) to ensure gapless playback
@@ -198,9 +198,9 @@ The shape for a `SubscriberOptionsUpdatePayload` is as follows:
 
 ```go
 type SubscriberOptionsUpdateMsg struct {
-	WantedCollections []string `json:"wantedCollections"`
-	WantedDIDs        []string `json:"wantedDids"`
-	MaxSize           int      `json:"maxSize"`
+	WantedCollections   []string `json:"wantedCollections"`
+	WantedDIDs          []string `json:"wantedDids"`
+	MaxMessageSizeBytes int      `json:"maxMessageSizeBytes"`
 }
 ```
 
@@ -220,7 +220,7 @@ An example Subscriber Sourced Message with an Options Update payload is as follo
   "payload": {
     "wantedCollections": ["app.bsky.feed.post"],
     "wantedDids": ["did:plc:q6gjnaw2blty4crticxkmujt"],
-    "maxSize": 1000000
+    "maxMessageSizeBytes": 1000000
   }
 }
 ```

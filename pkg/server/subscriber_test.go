@@ -8,47 +8,47 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseMaxSize(t *testing.T) {
+func TestParseMaxMessageSizeBytes(t *testing.T) {
 	stringTests := []struct {
-		name     string
-		maxSize  string
-		expected uint32
+		name                string
+		maxMessageSizeBytes string
+		expected            uint32
 	}{
 		{
-			name:     "zero",
-			maxSize:  "0",
-			expected: 0,
+			name:                "zero",
+			maxMessageSizeBytes: "0",
+			expected:            0,
 		},
 		{
-			name:     "empty",
-			maxSize:  "",
-			expected: 0,
+			name:                "empty",
+			maxMessageSizeBytes: "",
+			expected:            0,
 		},
 		{
-			name:     "invalid",
-			maxSize:  "nope",
-			expected: 0,
+			name:                "invalid",
+			maxMessageSizeBytes: "nope",
+			expected:            0,
 		},
 		{
-			name:     "valid",
-			maxSize:  "1000000",
-			expected: 1000000,
+			name:                "valid",
+			maxMessageSizeBytes: "1000000",
+			expected:            1000000,
 		},
 		{
-			name:     "uint32max",
-			maxSize:  "4294967295",
-			expected: 4294967295,
+			name:                "uint32max",
+			maxMessageSizeBytes: "4294967295",
+			expected:            4294967295,
 		},
 		{
-			name:     "uint32max_plus1",
-			maxSize:  "4294967296",
-			expected: 0,
+			name:                "uint32max_plus1",
+			maxMessageSizeBytes: "4294967296",
+			expected:            0,
 		},
 	}
 
 	for _, tt := range stringTests {
 		t.Run(fmt.Sprintf("string %s", tt.name), func(t *testing.T) {
-			got := ParseMaxSize(tt.maxSize)
+			got := ParseMaxMessageSizeBytes(tt.maxMessageSizeBytes)
 			if got != tt.expected {
 				t.Errorf("expected max size to be %d, got %d", tt.expected, got)
 			}
@@ -56,30 +56,30 @@ func TestParseMaxSize(t *testing.T) {
 	}
 
 	intTests := []struct {
-		name     string
-		maxSize  int
-		expected uint32
+		name                string
+		maxMessageSizeBytes int
+		expected            uint32
 	}{
 		{
-			name:     "zero",
-			maxSize:  0,
-			expected: 0,
+			name:                "zero",
+			maxMessageSizeBytes: 0,
+			expected:            0,
 		},
 		{
-			name:     "uint32max",
-			maxSize:  4294967295,
-			expected: 4294967295,
+			name:                "uint32max",
+			maxMessageSizeBytes: 4294967295,
+			expected:            4294967295,
 		},
 		{
-			name:     "uint32max_plus1",
-			maxSize:  4294967296,
-			expected: 0,
+			name:                "uint32max_plus1",
+			maxMessageSizeBytes: 4294967296,
+			expected:            0,
 		},
 	}
 
 	for _, tt := range intTests {
 		t.Run(fmt.Sprintf("int %s", tt.name), func(t *testing.T) {
-			got := ParseMaxSize(tt.maxSize)
+			got := ParseMaxMessageSizeBytes(tt.maxMessageSizeBytes)
 			if got != tt.expected {
 				t.Errorf("expected max size to be %d, got %d", tt.expected, got)
 			}
@@ -97,27 +97,27 @@ func TestParseSubscriberOptions(t *testing.T) {
 			name: "empty",
 			data: []byte(`{}`),
 			expected: SubscriberOptionsUpdatePayload{
-				WantedCollections: nil,
-				WantedDIDs:        nil,
-				MaxSize:           0,
+				WantedCollections:   nil,
+				WantedDIDs:          nil,
+				MaxMessageSizeBytes: 0,
 			},
 		},
 		{
 			name: "collection",
 			data: []byte(`{"wantedCollections":["foo"]}`),
 			expected: SubscriberOptionsUpdatePayload{
-				WantedCollections: []string{"foo"},
-				WantedDIDs:        nil,
-				MaxSize:           0,
+				WantedCollections:   []string{"foo"},
+				WantedDIDs:          nil,
+				MaxMessageSizeBytes: 0,
 			},
 		},
 		{
 			name: "small",
-			data: []byte(`{"maxSize":1000}`),
+			data: []byte(`{"maxMessageSizeBytes":1000}`),
 			expected: SubscriberOptionsUpdatePayload{
-				WantedCollections: nil,
-				WantedDIDs:        nil,
-				MaxSize:           1000,
+				WantedCollections:   nil,
+				WantedDIDs:          nil,
+				MaxMessageSizeBytes: 1000,
 			},
 		},
 	}

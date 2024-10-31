@@ -34,11 +34,11 @@ type Subscriber struct {
 	// Subscriber options
 
 	// wantedCollections is nil if the subscriber wants all collections
-	wantedCollections *WantedCollections
-	wantedDids        map[string]struct{}
-	cursor            *int64
-	compress          bool
-	maxSize           uint32
+	wantedCollections   *WantedCollections
+	wantedDids          map[string]struct{}
+	cursor              *int64
+	compress            bool
+	maxMessageSizeBytes uint32
 
 	rl *rate.Limiter
 
@@ -66,7 +66,7 @@ func emitToSubscriber(ctx context.Context, log *slog.Logger, sub *Subscriber, ti
 	}
 
 	evtBytes := getEventBytes()
-	if sub.maxSize > 0 && uint32(len(evtBytes)) > sub.maxSize {
+	if sub.maxMessageSizeBytes > 0 && uint32(len(evtBytes)) > sub.maxMessageSizeBytes {
 		return nil
 	}
 
@@ -130,23 +130,23 @@ type SubscriberSourcedMessage struct {
 }
 
 type SubscriberOptionsUpdatePayload struct {
-	WantedCollections []string `json:"wantedCollections"`
-	WantedDIDs        []string `json:"wantedDids"`
-	MaxSize           int      `json:"maxSize"`
+	WantedCollections   []string `json:"wantedCollections"`
+	WantedDIDs          []string `json:"wantedDids"`
+	MaxMessageSizeBytes int      `json:"maxMessageSizeBytes"`
 }
 
 type SubscriberOptions struct {
-	WantedCollections *WantedCollections
-	WantedDIDs        map[string]struct{}
-	MaxSize           uint32
-	Compress          bool
-	Cursor            *int64
+	WantedCollections   *WantedCollections
+	WantedDIDs          map[string]struct{}
+	MaxMessageSizeBytes uint32
+	Compress            bool
+	Cursor              *int64
 }
 
 // ErrInvalidOptions is returned when the subscriber options are invalid
 var ErrInvalidOptions = fmt.Errorf("invalid subscriber options")
 
-func parseSubscriberOptions(ctx context.Context, wantedCollectionsProvided, wantedDidsProvided []string, compress bool, maxSize uint32, cursor *int64) (*SubscriberOptions, error) {
+func parseSubscriberOptions(ctx context.Context, wantedCollectionsProvided, wantedDidsProvided []string, compress bool, maxMessageSizeBytes uint32, cursor *int64) (*SubscriberOptions, error) {
 	ctx, span := tracer.Start(ctx, "parseSubscriberOptions")
 	defer span.End()
 
@@ -192,11 +192,11 @@ func parseSubscriberOptions(ctx context.Context, wantedCollectionsProvided, want
 	}
 
 	return &SubscriberOptions{
-		WantedCollections: wantedCol,
-		WantedDIDs:        didMap,
-		Compress:          compress,
-		MaxSize:           maxSize,
-		Cursor:            cursor,
+		WantedCollections:   wantedCol,
+		WantedDIDs:          didMap,
+		Compress:            compress,
+		MaxMessageSizeBytes: maxMessageSizeBytes,
+		Cursor:              cursor,
 	}, nil
 }
 
@@ -231,7 +231,7 @@ func (s *Server) AddSubscriber(ws *websocket.Conn, realIP string, opts *Subscrib
 		"wantedDids", opts.WantedDIDs,
 		"cursor", opts.Cursor,
 		"compress", opts.Compress,
-		"maxSize", opts.MaxSize,
+		"maxMessageSizeBytes", opts.MaxMessageSizeBytes,
 	)
 
 	return &sub, nil
@@ -300,10 +300,10 @@ func (s *Subscriber) SetCursor(cursor *int64) {
 	s.cursor = cursor
 }
 
-// ParseMaxSize parses a max size value string or integer and returns a
+// ParseMaxMessageSizeBytes parses a max size value string or integer and returns a
 // uint32. If the value is less than 0, it returns 0. If the value is not a
 // valid integer, it returns 0.
-func ParseMaxSize[V int | string](value V) uint32 {
+func ParseMaxMessageSizeBytes[V int | string](value V) uint32 {
 	if intValue, ok := any(value).(int); ok {
 		if intValue < 0 {
 			return 0
