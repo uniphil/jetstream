@@ -31,6 +31,7 @@ func main() {
 	config.WebsocketURL = serverAddr
 	config.Compress = true
 
+	h := handler{}
 	scheduler := sequential.NewScheduler("jetstream_localdev", logger, h.HandleEvent)
 
 	c, err := client.NewClient(config, logger, scheduler)
