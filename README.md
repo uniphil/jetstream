@@ -55,7 +55,7 @@ The following Query Parameters are supported:
   - You can specify at most 100 wanted collections/prefixes.
 - `wantedDids` - An array of Repo DIDs to filter which records you receive on your stream (Default empty = all repos)
   - You can specify at most 10,000 wanted DIDs.
-- `maxSize` - The maximum size of a payload that this client would like to receive. Zero means no limit, negative values are treated as zero. (Default "0" or empty = no maximum size)
+- `maxSize` - The maximum size in bytes for a payload that this client would like to receive. Zero means no limit, negative values are treated as zero. (Default "0" or empty = no maximum size)
 - `cursor` - A unix microseconds timestamp cursor to begin playback from
   - An absent cursor or a cursor from the future will result in live-tail operation
   - When reconnecting, use the `time_us` from your most recently processed event and maybe provide a negative buffer (i.e. subtract a few seconds) to ensure gapless playback
