@@ -66,7 +66,7 @@ func emitToSubscriber(ctx context.Context, log *slog.Logger, sub *Subscriber, ti
 	}
 
 	evtBytes := getEventBytes()
-	if sub.maxSize > 0 && len(evtBytes) > int(sub.maxSize) {
+	if sub.maxSize > 0 && uint32(len(evtBytes)) > sub.maxSize {
 		return nil
 	}
 
