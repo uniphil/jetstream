@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -37,6 +38,7 @@ type Subscriber struct {
 	wantedDids        map[string]struct{}
 	cursor            *int64
 	compress          bool
+	maxSize           uint32
 
 	rl *rate.Limiter
 
@@ -64,6 +66,10 @@ func emitToSubscriber(ctx context.Context, log *slog.Logger, sub *Subscriber, ti
 	}
 
 	evtBytes := getEventBytes()
+	if sub.maxSize > 0 && len(evtBytes) > int(sub.maxSize) {
+		return nil
+	}
+
 	if playback {
 		// Copy the event bytes so the playback iterator can reuse the buffer
 		evtBytes = append([]byte{}, evtBytes...)
@@ -126,11 +132,13 @@ type SubscriberSourcedMessage struct {
 type SubscriberOptionsUpdatePayload struct {
 	WantedCollections []string `json:"wantedCollections"`
 	WantedDIDs        []string `json:"wantedDids"`
+	MaxSize           int      `json:"maxSize"`
 }
 
 type SubscriberOptions struct {
 	WantedCollections *WantedCollections
 	WantedDIDs        map[string]struct{}
+	MaxSize           uint32
 	Compress          bool
 	Cursor            *int64
 }
@@ -138,7 +146,7 @@ type SubscriberOptions struct {
 // ErrInvalidOptions is returned when the subscriber options are invalid
 var ErrInvalidOptions = fmt.Errorf("invalid subscriber options")
 
-func parseSubscriberOptions(ctx context.Context, wantedCollectionsProvided, wantedDidsProvided []string, compress bool, cursor *int64) (*SubscriberOptions, error) {
+func parseSubscriberOptions(ctx context.Context, wantedCollectionsProvided, wantedDidsProvided []string, compress bool, maxSize uint32, cursor *int64) (*SubscriberOptions, error) {
 	ctx, span := tracer.Start(ctx, "parseSubscriberOptions")
 	defer span.End()
 
@@ -187,6 +195,7 @@ func parseSubscriberOptions(ctx context.Context, wantedCollectionsProvided, want
 		WantedCollections: wantedCol,
 		WantedDIDs:        didMap,
 		Compress:          compress,
+		MaxSize:           maxSize,
 		Cursor:            cursor,
 	}, nil
 }
@@ -222,6 +231,7 @@ func (s *Server) AddSubscriber(ws *websocket.Conn, realIP string, opts *Subscrib
 		"wantedDids", opts.WantedDIDs,
 		"cursor", opts.Cursor,
 		"compress", opts.Compress,
+		"maxSize", opts.MaxSize,
 	)
 
 	return &sub, nil
@@ -288,4 +298,29 @@ func (s *Subscriber) SetCursor(cursor *int64) {
 	defer s.lk.Unlock()
 
 	s.cursor = cursor
+}
+
+// ParseMaxSize parses a max size value string or integer and returns a
+// uint32. If the value is less than 0, it returns 0. If the value is not a
+// valid integer, it returns 0.
+func ParseMaxSize[V int | string](value V) uint32 {
+	if intValue, ok := any(value).(int); ok {
+		if intValue < 0 {
+			return 0
+		}
+		return uint32(intValue)
+	}
+
+	if strValue, ok := any(value).(string); ok {
+		if strValue == "" {
+			return 0
+		}
+		intValue, err := strconv.Atoi(strValue)
+		if err != nil || intValue < 0 {
+			return 0
+		}
+		return uint32(intValue)
+	}
+
+	return 0
 }
