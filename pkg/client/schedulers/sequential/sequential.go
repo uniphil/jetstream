@@ -49,7 +49,9 @@ func (p *Scheduler) Shutdown() {
 func (s *Scheduler) AddWork(ctx context.Context, repo string, val *models.Event) error {
 	s.itemsAdded.Inc()
 	s.itemsActive.Inc()
-	err := s.handleEvent(ctx, val)
+	if err := s.handleEvent(ctx, val); err != nil {
+		s.logger.Error("event handler failed", "error", err)
+	}
 	s.itemsProcessed.Inc()
-	return err
+	return nil
 }

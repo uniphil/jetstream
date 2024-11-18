@@ -166,8 +166,8 @@ func (c *Client) readLoop(ctx context.Context) error {
 			if c.decoder != nil && c.config.Compress {
 				m, err := c.decoder.DecodeAll(msg, nil)
 				if err != nil {
-					c.logger.Error("failed to decompress message", "error", err)
-					return fmt.Errorf("failed to decompress message: %w", err)
+					c.logger.Error("failed to decompress message (ignoring)", "error", err)
+					continue
 				}
 				msg = m
 			}
@@ -175,8 +175,8 @@ func (c *Client) readLoop(ctx context.Context) error {
 			// Unpack the message and pass it to the handler
 			var event models.Event
 			if err := json.Unmarshal(msg, &event); err != nil {
-				c.logger.Error("failed to unmarshal event", "error", err)
-				return fmt.Errorf("failed to unmarshal event: %w", err)
+				c.logger.Error("failed to unmarshal event (ignoring)", "error", err, msg)
+				continue
 			}
 
 			if err := c.Scheduler.AddWork(ctx, event.Did, &event); err != nil {
